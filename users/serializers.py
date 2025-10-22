@@ -1,7 +1,6 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-# Removed 'User' from this import list, as it is correctly loaded via get_user_model() below
 from .models import Student, Employer 
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
@@ -18,13 +17,39 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    phone_number = serializers.CharField(source='user.phone_number', read_only=True)
+    gender = serializers.CharField(source='user.gender', read_only=True)
+
+    def update(self, instance, validated_data):
+        user_data_to_update = {}
+        user_fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'gender']
+        
+        for field in user_fields:
+            if field in validated_data:
+                user_data_to_update[field] = validated_data.pop(field) 
+
+        user = instance.user
+        for attr, value in user_data_to_update.items():
+            if value is not None:
+                setattr(user, attr, value)
+        user.save()
+
+        return super().update(instance, validated_data)
 
     class Meta:
         model = Student
         fields = [
             "id",
-            "user",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "gender",
             "student_id",
             "degree",
             "year_of_study",
@@ -33,13 +58,37 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class EmployerSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    phone_number = serializers.CharField(source='user.phone_number', read_only=True)
+
+    def update(self, instance, validated_data):
+        user_data_to_update = {}
+        user_fields = ['username', 'email', 'first_name', 'last_name', 'phone_number']
+        
+        for field in user_fields:
+            if field in validated_data:
+                user_data_to_update[field] = validated_data.pop(field) 
+
+        user = instance.user
+        for attr, value in user_data_to_update.items():
+            if value is not None:
+                setattr(user, attr, value)
+        user.save()
+
+        return super().update(instance, validated_data)
 
     class Meta:
         model = Employer
         fields = [
             "id",
-            "user",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
             "employer_id",
             "company_name",
             "industry",
@@ -49,11 +98,8 @@ class EmployerSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     
-    # User fields that are not part of AbstractUser default, but are in your model:
     phone_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
     gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    
-    # Profile-specific fields:
     student_id = serializers.CharField(write_only=True, required=False, allow_blank=True) 
     degree = serializers.CharField(write_only=True, required=False, allow_blank=True)
     year_of_study = serializers.CharField(write_only=True, required=False, allow_blank=True) 
@@ -65,30 +111,24 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "email", "password", 
             "first_name", "last_name", "role",
-            # All fields being passed from the client
             "phone_number", "gender", 
             "student_id", "degree", "year_of_study", "company_name", "industry" 
         ]
 
     def create(self, validated_data):
-        # 1. Pop fields required for user creation and authentication
         password = validated_data.pop("password")
         role = validated_data.pop("role")
-        
-        # 2. Extract ALL base User fields explicitly from validated_data
-        # This ensures they are removed from validated_data and passed only to User.create_user
+
         user_create_data = {
             'username': validated_data.pop("username"),
             'email': validated_data.pop("email"),
             'first_name': validated_data.pop("first_name", None),
             'last_name': validated_data.pop("last_name", None),
             
-            # CRITICAL: These are base User fields, but they must be popped here
             'phone_number': validated_data.pop("phone_number", None),
             'gender': validated_data.pop("gender", None), 
         }
 
-        # 3. Extract profile-specific data (validated_data should now only contain profile fields)
         student_data = {
             'student_id': validated_data.pop("student_id", None),
             'degree': validated_data.pop("degree", None),
@@ -99,21 +139,17 @@ class RegisterSerializer(serializers.ModelSerializer):
             'industry': validated_data.pop("industry", None),
         }
         
-        # 4. Final check: Ensure validated_data is empty after popping all known fields
-        # This step is critical if any unexpected data remains! 
         if validated_data:
-            # Although this block should not run, it guarantees only known fields are passed.
             for key in list(validated_data.keys()):
                 validated_data.pop(key)
         
-        # 5. Create the base User object
         user = User.objects.create_user(
             password=password,
             role=role,
-            **user_create_data # Unpack ALL base user fields here
+            **user_create_data 
         )
         
-        # 6. Create linked profile (only profile-specific data is passed)
+
         if user.role == "student":
             Student.objects.create(
                 user=user, 
@@ -122,7 +158,6 @@ class RegisterSerializer(serializers.ModelSerializer):
                 year_of_study=student_data.get("year_of_study"),
             )
         elif user.role == "employer":
-            # You might need to adjust this employer_id generation logic if it needs more padding
             Employer.objects.create(
                 user=user,
                 employer_id=f"EMP{user.id}",
@@ -174,7 +209,6 @@ class PasswordResetSerializer(serializers.Serializer):
         return data
 
     def save(self, **kwargs):
-        # FIX: Removed the explicit type hint ': User' to resolve Pylance warning
         user = self.context["request"].user 
         user.set_password(self.validated_data["new_password"])
         user.save()
@@ -202,7 +236,6 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
     def validate(self, data):
         try:
             uid = force_str(urlsafe_base64_decode(data["uidb64"]))
-            # 'self.user' will be the correct User type
             self.user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             raise serializers.ValidationError({"uidb64": "Invalid UID"})
@@ -213,7 +246,6 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
         return data
 
     def save(self):
-        # self.user is implicitly the User model instance
         self.user.set_password(self.validated_data["new_password"])
         self.user.save()
         return self.user

@@ -9,6 +9,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.conf import settings
+from django.contrib.auth import authenticate
 
 from .models import User, Student, Employer
 from .serializers import (
@@ -38,39 +39,43 @@ class EmployerViewSet(viewsets.ModelViewSet):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
-    try:
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            # The RegisterSerializer.save() method now correctly creates the base User 
-            # and the associated Student/Employer profile with all necessary data.
-            user = serializer.save()  
-            
-            # BUG FIX: Removed the redundant and incorrect manual profile creation logic.
-            # The code below was passing fields like 'phone_number' and 'gender' 
-            # to Student/Employer, causing the 500 Server Error.
-            
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
-                "user": UserSerializer(user).data,
-                "token": token.key,
-            }, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def login(request):
-    serializer = LoginSerializer(data=request.data)
+    serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
-        user = serializer.validated_data["user"]
+        user = serializer.save()
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
             "user": UserSerializer(user).data,
             "token": token.key,
-        })
+        }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def login(request):
+    username_or_email = request.data.get("username")
+    password = request.data.get("password")
+
+    # Authenticate user using username
+    user = authenticate(username=username_or_email, password=password)
+
+    # If not found, try email
+    if user is None:
+        try:
+            user_obj = User.objects.get(email=username_or_email)
+            user = authenticate(username=user_obj.username, password=password)
+        except User.DoesNotExist:
+            user = None
+
+    if user is None:
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+
+    token, _ = Token.objects.get_or_create(user=user)
+    user_data = UserSerializer(user).data
+    user_data['role'] = user.role if hasattr(user, 'role') else 'unknown'
+
+    return Response({"user": user_data, "token": token.key})
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -81,6 +86,7 @@ def logout(request):
         pass
     return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
 
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def reset_password(request):
@@ -90,13 +96,18 @@ def reset_password(request):
         return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def forgot_password(request):
     serializer = ForgotPasswordSerializer(data=request.data)
     if serializer.is_valid():
         email = serializer.validated_data["email"]
-        user = User.objects.get(email=email)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "No user found with this email"}, status=status.HTTP_404_NOT_FOUND)
+
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         reset_link = f"{settings.FRONTEND_URL}/reset-password/{uidb64}/{token}/"
@@ -107,7 +118,9 @@ def forgot_password(request):
             recipient_list=[email],
         )
         return Response({"detail": "Password reset email sent."}, status=status.HTTP_200_OK)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -118,12 +131,14 @@ def reset_password_confirm(request):
         return Response({"detail": "Password has been reset successfully."}, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def upload_cv(request):
     user = request.user
     if not user.is_student():
         return Response({"detail": "Only students can upload CVs."}, status=status.HTTP_403_FORBIDDEN)
+
     try:
         student = Student.objects.get(user=user)
     except Student.DoesNotExist:
@@ -132,8 +147,9 @@ def upload_cv(request):
     serializer = StudentCVUploadSerializer(student, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        return Response({"detail": "CV uploaded successfully.", "cv": serializer.data["cv"]}, status=status.HTTP_200_OK)
+        return Response({"detail": "CV uploaded successfully.", "cv": serializer.data.get("cv")}, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # ------------------------------
 # USER API ROOT
