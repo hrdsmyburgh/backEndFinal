@@ -24,6 +24,7 @@ class StudentSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source='user.phone_number', read_only=True)
     gender = serializers.CharField(source='user.gender', read_only=True)
 
+<<<<<<< HEAD
 
 
     def get_profile_picture(self, obj):
@@ -35,6 +36,8 @@ class StudentSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField() 
 
 
+=======
+>>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
     def update(self, instance, validated_data):
         user_data_to_update = {}
         user_fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'gender']
@@ -65,12 +68,15 @@ class StudentSerializer(serializers.ModelSerializer):
             "degree",
             "year_of_study",
             "cv",
+<<<<<<< HEAD
             "bio",
             "address",
             "city",
             "province",
             "zip",
             "profile_picture"
+=======
+>>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
         ]
 
 

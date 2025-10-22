@@ -13,8 +13,11 @@ services:
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
+<<<<<<< HEAD
     volumes:
       - .:/code  
+=======
+>>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
     ports:
       - "8000:8000"
     depends_on:
