@@ -1,10 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-<<<<<<< HEAD
 from rest_framework.decorators import api_view, permission_classes, action
-=======
-from rest_framework.decorators import api_view, permission_classes
->>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from rest_framework.reverse import reverse
@@ -15,10 +11,7 @@ from django.utils.encoding import force_bytes
 from django.conf import settings
 from django.contrib.auth import authenticate
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
 from .models import User, Student, Employer
 from .serializers import (
     UserSerializer, StudentSerializer, EmployerSerializer,
@@ -169,7 +162,6 @@ def user_api_root(request, format=None):
         'login': reverse('users:login', request=request, format=format),
         'reset_password': reverse('users:reset_password', request=request, format=format),
         'forgot_password': reverse('users:forgot_password', request=request, format=format),
-<<<<<<< HEAD
     })
 
 
@@ -268,6 +260,3 @@ def upload_profile_picture(request):
         "detail": "Profile picture uploaded successfully.",
         "profile_picture": profile_picture_url 
     }, status=status.HTTP_200_OK)
-=======
-    })
->>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6

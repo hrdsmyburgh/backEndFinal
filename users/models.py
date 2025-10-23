@@ -32,7 +32,6 @@ class Student(models.Model):
     year_of_study = models.CharField(max_length=50, blank=True)
     cv = models.FileField(upload_to="cvs/", blank=True, null=True)
 
-<<<<<<< HEAD
     bio = models.TextField(blank=True)
     address = models.CharField(max_length=255, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
@@ -41,8 +40,6 @@ class Student(models.Model):
 
     profile_picture = models.ImageField(upload_to="profile_pics/", blank=True, null=True)
 
-=======
->>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
     def __str__(self):
         return self.user.username or f"Student ID {self.student_id}"
        

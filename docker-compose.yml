@@ -6,18 +6,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "5433:5432" 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
-<<<<<<< HEAD
-    volumes:
-      - .:/code  
-=======
->>>>>>> 7afbf2608e9044b265d0e408f4daa2beb500f4c6
     ports:
       - "8000:8000"
     depends_on:

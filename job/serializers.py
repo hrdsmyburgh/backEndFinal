@@ -89,13 +89,24 @@ class ApplicationStatusUpdateSerializer(serializers.ModelSerializer):
         return value
 
 class JobCreateSerializer(serializers.ModelSerializer):
+    job_type = serializers.CharField(source='type') 
+    skills_required = serializers.CharField(source='detailed_experience', required=False) 
+    education_experience = serializers.CharField(source='education', required=False)
+
     class Meta:
         model = Job
         fields = [
-            'title', 'description', 'type', 'experience',
-            'detailed_experience', 'education', 'location', 'salary_range'
+            'title', 
+            'description', 
+            'job_type', 
+            'skills_required', 
+            'education_experience', 
+            'location', 
+            'salary_range', 
+            'vacancies',
+            'is_active'
         ]
-    
+
     def validate_title(self, value):
         if len(value) < 5:
             raise serializers.ValidationError("Job title must be at least 5 characters long.")
