@@ -30,6 +30,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:9000",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
@@ -52,8 +53,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware', 
+    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

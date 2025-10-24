@@ -39,7 +39,7 @@ class JobListAPIView(generics.ListAPIView):
 # ... (rest of the existing JobListAPIView) ...
     """List all active jobs with optional filtering"""
     serializer_class = JobSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = Job.objects.filter(is_active=True)

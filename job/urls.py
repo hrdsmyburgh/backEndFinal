@@ -25,7 +25,7 @@ urlpatterns = [
     # -------------------
     path('list/', JobListAPIView.as_view(), name='job-list'), 
     path('create/', JobCreateAPIView.as_view(), name='job-create'), 
-    path('<int:pk>/', JobDetailAPIView.as_view(), name='job-detail'), 
+    path('details/<int:pk>/', JobDetailAPIView.as_view(), name='job-detail'),
     path('my/', MyJobPostingsAPIView.as_view(), name='my-jobs'), 
     path('stats/', JobStatsAPIView.as_view(), name='job-stats'), 
 
