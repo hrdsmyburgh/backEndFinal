@@ -118,6 +118,7 @@ class JobCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        validated_data.pop('employer', None)
         employer = self.context['request'].user.employer_profile
         job = Job.objects.create(employer=employer, **validated_data)
         return job
