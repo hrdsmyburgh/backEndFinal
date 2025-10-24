@@ -11,7 +11,13 @@ class UserSerializer(serializers.ModelSerializer):
 class JobSerializer(serializers.ModelSerializer):
     employer = EmployerSerializer(read_only=True)
     applications_count = serializers.SerializerMethodField()
-    user_has_applied = serializers.SerializerMethodField() 
+    user_has_applied = serializers.SerializerMethodField()
+    company_info = serializers.SerializerMethodField()
+    job_nature = serializers.CharField(source='type', read_only=True)
+    salary = serializers.CharField(source='salary_range', read_only=True)
+    vacancy = serializers.IntegerField(source='vacancies', read_only=True)
+    posted_date = serializers.DateTimeField(source='posted_on', read_only=True)
+    application_deadline = serializers.DateTimeField(source='deadline', read_only=True, required=False)
     
     def get_user_has_applied(self, obj):
         request = self.context.get('request')
@@ -24,14 +30,31 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = [
-            'id', 'title', 'description', 'posted_on', 'type', 'experience',
-            'detailed_experience', 'education', 'employer', 'location', 'salary_range',
-            'is_active', 'applications_count', 'user_has_applied'
+            'id', 'title', 'description', 'posted_date', 'job_nature', 'experience',
+            'detailed_experience', 'education', 'location', 'salary', 'vacancy',
+            'is_active', 'applications_count', 'user_has_applied', 'application_deadline',
+            'company_info', 'employer'
         ]
         read_only_fields = ['posted_on']
     
     def get_applications_count(self, obj):
         return obj.applications.count()
+    
+    def get_company_info(self, obj):
+        employer = obj.employer
+        if employer:
+            return {
+                'name': employer.company_name if hasattr(employer, 'company_name') else 'N/A',
+                'description': employer.company_description if hasattr(employer, 'company_description') else 'N/A',
+                'website': employer.company_website if hasattr(employer, 'company_website') else 'N/A',
+                'email': employer.user.email if hasattr(employer, 'user') and employer.user else 'N/A',
+            }
+        return {
+            'name': 'N/A',
+            'description': 'N/A',
+            'website': 'N/A',
+            'email': 'N/A',
+        }
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
